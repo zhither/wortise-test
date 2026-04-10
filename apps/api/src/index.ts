@@ -12,23 +12,33 @@ import { Hono } from "hono";
 
 import { buildApp } from "./build-app.js";
 
-/** Misma política que build-app (sin depender de env() validado si el init falla antes). */
-function applyShellCors(c: Context): void {
+/** Orígenes permitidos leyendo `CORS_ORIGIN` crudo (puede ser lista separada por coma). */
+function corsOriginsFromProcessEnv(): string[] {
   const raw = process.env.CORS_ORIGIN;
-  if (!raw?.trim()) return;
-  let allow: string;
-  try {
-    allow = new URL(raw.trim()).origin;
-  } catch {
-    return;
+  if (!raw?.trim()) return [];
+  const out: string[] = [];
+  for (const part of raw.split(/,/u).map((s) => s.trim()).filter(Boolean)) {
+    try {
+      out.push(new URL(part).origin);
+    } catch {
+      /* ignorar entrada inválida */
+    }
   }
+  return out;
+}
+
+/** Misma política que build-app cuando el init falla antes de `env()`. */
+function applyShellCors(c: Context): void {
+  const allows = corsOriginsFromProcessEnv();
   const origin = c.req.header("Origin");
-  if (!origin || origin !== allow) return;
-  c.header("Access-Control-Allow-Origin", allow);
+  if (!origin || !allows.includes(origin)) return;
+  c.header("Access-Control-Allow-Origin", origin);
   c.header("Access-Control-Allow-Credentials", "true");
+  const requestHeaders = c.req.header("Access-Control-Request-Headers");
   c.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Cookie",
+    requestHeaders ||
+      "Content-Type, Authorization, Cookie, X-Requested-With",
   );
   c.header(
     "Access-Control-Allow-Methods",

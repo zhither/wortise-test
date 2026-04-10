@@ -20,8 +20,10 @@ export async function buildApp(): Promise<Hono> {
   app.use(
     "*",
     cors({
-      origin: e.CORS_ORIGIN,
-      allowHeaders: ["Content-Type", "Authorization", "Cookie"],
+      origin: (origin) =>
+        origin && e.CORS_ORIGINS.includes(origin) ? origin : null,
+      // Reflejá los headers del preflight (Better Auth puede pedir más que esta lista fija).
+      allowMethods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       credentials: true,
     }),
   );

@@ -23,7 +23,7 @@ export function createAuth(mongoDb: Db, mongoClient: MongoClient) {
     baseURL: e.BETTER_AUTH_URL,
     trustedOrigins: Array.from(
       new Set([
-        e.CORS_ORIGIN,
+        ...e.CORS_ORIGINS,
         "http://localhost:5173",
         "http://127.0.0.1:5173",
       ]),
