@@ -22,8 +22,10 @@ export function env(): Env {
   if (cached) return cached;
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
-    console.error(parsed.error.flatten().fieldErrors);
-    throw new Error("Invalid environment variables");
+    const flat = parsed.error.flatten().fieldErrors;
+    const detail = JSON.stringify(flat);
+    console.error("[env] validation failed:", detail);
+    throw new Error(`Invalid environment variables: ${detail}`);
   }
   const data = parsed.data;
   const hasOpenai = Boolean(data.OPENAI_API_KEY?.trim());
