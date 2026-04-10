@@ -184,7 +184,11 @@ function parseChatStreamBody(
   body: unknown,
 ): { chatId: string; text: string } | null {
   const direct = streamChatRequestSchema.safeParse(body);
-  if (direct.success) return direct.data;
+  if (direct.success) {
+    const { chatId, text } = direct.data;
+    if (typeof chatId !== "string" || typeof text !== "string") return null;
+    return { chatId, text };
+  }
 
   if (typeof body !== "object" || body === null) return null;
   const rec = body as Record<string, unknown>;
