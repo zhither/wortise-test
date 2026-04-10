@@ -1,19 +1,52 @@
 /**
- * Entrada para Vercel (Hono): default export del app.
- * Desarrollo local: `pnpm dev` → `src/server.ts` con @hono/node-server.
+ * Entrada para Vercel (Hono): default export.
+ * Capa ligera que hace lazy init de la app: si Mongo/env fallan, no rompe el cold start
+ * con 500 opaco; las rutas devuelven JSON con pistas (en dev) o mensaje genérico (prod).
  *
- * Vercel exige que este archivo importe `hono` en texto plano (no solo vía build-app).
+ * Local: `pnpm dev` → `src/server.ts` con @hono/node-server.
  */
 import "./load-env.js";
 
 import { Hono } from "hono";
+
 import { buildApp } from "./build-app.js";
-import { env } from "./env.js";
 
-env();
-const app = await buildApp();
+let appPromise: Promise<Hono> | null = null;
 
-export default app;
+function getApp(): Promise<Hono> {
+  if (!appPromise) {
+    appPromise = buildApp().catch((err) => {
+      appPromise = null;
+      throw err;
+    });
+  }
+  return appPromise;
+}
 
-/** Satisfies Vercel static scan + TS “used” (Hono class exists at runtime). */
+const shell = new Hono();
+
+shell.get("/", (c) =>
+  c.json({
+    ok: true,
+    service: "wortise-api",
+    health: "/health",
+  }),
+);
+
+shell.all("*", async (c) => {
+  try {
+    const app = await getApp();
+    return app.fetch(c.req.raw);
+  } catch (err) {
+    console.error("[wortise-api] init or fetch failed:", err);
+    const isDev = process.env.NODE_ENV === "development";
+    const message =
+      isDev && err instanceof Error ? err.message : "Service initialization failed";
+    return c.json({ ok: false, error: message }, 503);
+  }
+});
+
+export default shell;
+
+/** Vercel Hono preset: este archivo debe importar `hono`. */
 export type App = Hono;
