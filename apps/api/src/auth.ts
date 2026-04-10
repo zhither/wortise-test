@@ -35,10 +35,11 @@ export function createAuth(mongoDb: Db, mongoClient: MongoClient) {
             disableCSRFCheck: true,
           }
         : {
-            // Front (*.vercel.app) ≠ API (*.vercel.app): el navegador solo manda la cookie con None + Secure.
+            // Front (*.vercel.app) ≠ API (*.vercel.app): None + Secure; Partitioned ayuda en Chrome/ITP e incógnito.
             defaultCookieAttributes: {
               sameSite: "none",
               secure: true,
+              partitioned: true,
             },
           }),
     },
