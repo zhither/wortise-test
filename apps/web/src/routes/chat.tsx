@@ -71,6 +71,8 @@ export function ChatPage() {
     {
       getNextPageParam: (last) => last.nextCursor ?? undefined,
       enabled: !!chatId && !!session.data?.user,
+      /** Evita parpadeo al invalidar tras el stream: mantenemos la página anterior hasta el refetch. */
+      placeholderData: (prev) => prev,
     },
   );
 
@@ -109,9 +111,11 @@ export function ChatPage() {
     api: `${apiBase}/api/chat/stream`,
     credentials: "include",
     body: chatId ? { chatId } : {},
-    onFinish: () => {
-      void qc.messages.listByChat.invalidate();
-      void qc.chats.list.invalidate();
+    onFinish: async () => {
+      await Promise.all([
+        qc.messages.listByChat.invalidate(),
+        qc.chats.list.invalidate(),
+      ]);
       setMessages([]);
     },
   });
@@ -512,7 +516,11 @@ export function ChatPage() {
                         <div className="min-w-0 max-w-[min(100%,560px)] flex-1">
                           <MessagePartsView parts={m.parts} assistantLayout />
                           {m.status === "streaming" && (
-                            <span className="mt-2 inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
+                            <span
+                              className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-indigo-400/90"
+                              style={{ animation: "helios-pulse 1.4s ease-in-out infinite" }}
+                              aria-hidden
+                            />
                           )}
                         </div>
                       </div>
@@ -544,11 +552,7 @@ export function ChatPage() {
                             p.type === "text" ? (
                               <div
                                 key={i}
-                                className={
-                                  streaming
-                                    ? "cursor-blink rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3"
-                                    : "rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3"
-                                }
+                                className="rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 shadow-sm shadow-black/5 transition-[border-color,box-shadow] duration-200"
                               >
                                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#f0f0f5]">
                                   {p.text}
@@ -557,7 +561,11 @@ export function ChatPage() {
                             ) : null,
                           )}
                           {streaming && (
-                            <span className="mt-2 inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
+                            <span
+                              className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-indigo-400/90"
+                              style={{ animation: "helios-pulse 1.4s ease-in-out infinite" }}
+                              aria-hidden
+                            />
                           )}
                         </div>
                       </div>
@@ -574,12 +582,10 @@ export function ChatPage() {
                   {error.message || "No se pudo obtener la respuesta."}
                 </div>
               )}
-              {streaming && (
+              {status === "submitted" && (
                 <div className="mx-auto mb-3 flex max-w-3xl items-center gap-2 text-sm text-[#9090a8]">
                   <Spinner size="sm" color="primary" />
-                  <span>
-                    {status === "submitted" ? "Enviando…" : "Generando respuesta…"}
-                  </span>
+                  <span>Enviando…</span>
                 </div>
               )}
 
