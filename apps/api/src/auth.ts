@@ -28,12 +28,20 @@ export function createAuth(mongoDb: Db, mongoClient: MongoClient) {
         "http://127.0.0.1:5173",
       ]),
     ),
-    advanced: isDev
-      ? {
-          // Vite proxy / primer request sin cookie: evita fallos de validación de origen en local.
-          disableCSRFCheck: true,
-        }
-      : undefined,
+    advanced: {
+      ...(isDev
+        ? {
+            // Vite proxy (mismo host :5173): relajar CSRF en local.
+            disableCSRFCheck: true,
+          }
+        : {
+            // Front (*.vercel.app) ≠ API (*.vercel.app): el navegador solo manda la cookie con None + Secure.
+            defaultCookieAttributes: {
+              sameSite: "none",
+              secure: true,
+            },
+          }),
+    },
   });
 }
 
