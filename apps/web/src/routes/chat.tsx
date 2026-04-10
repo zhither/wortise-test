@@ -8,11 +8,11 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Input,
   Spinner,
 } from "@heroui/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ChatSearchField } from "../components/chat-search-field";
 import { Icon } from "../components/icons";
 import { MessagePartsView } from "../components/message-parts";
 import { formatChatListTime } from "../lib/format-chat-time";
@@ -174,6 +174,10 @@ export function ChatPage() {
     setSidebarOpen(false);
   };
 
+  const setSearchQuery = (v: string) => {
+    void navigate({ to: "/chat", search: { chatId, q: v || undefined } });
+  };
+
   const sidebarInner = (
     <>
       <div className="border-b border-[var(--border)] p-4">
@@ -199,32 +203,11 @@ export function ChatPage() {
             <Icon name="plus" size={16} color="#fff" />
           </Button>
         </div>
-        <Input
-          size="sm"
-          placeholder="Buscar chats…"
+        <ChatSearchField
           value={q}
-          onValueChange={(v) =>
-            void navigate({ to: "/chat", search: { chatId, q: v || undefined } })
-          }
-          variant="bordered"
-          startContent={<Icon name="search" size={14} color="#5a5a70" />}
-          endContent={
-            q ? (
-              <button
-                type="button"
-                className="flex text-[#5a5a70]"
-                onClick={() => void navigate({ to: "/chat", search: { chatId, q: undefined } })}
-                aria-label="Limpiar búsqueda"
-              >
-                <Icon name="x" size={14} />
-              </button>
-            ) : null
-          }
-          classNames={{
-            inputWrapper:
-              "border-[var(--border-strong)] bg-[var(--bg-elevated)] h-10 min-h-10",
-            input: "text-[13px]",
-          }}
+          onValueChange={setSearchQuery}
+          placeholder="Buscar chats…"
+          aria-label="Buscar chats por título"
         />
       </div>
 
@@ -346,55 +329,103 @@ export function ChatPage() {
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {!chatId && (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-6 text-center text-[#5a5a70]">
-            <Icon name="sparkle" size={32} color="#5a5a70" />
-            <p className="text-sm">Seleccioná o creá un chat desde el menú.</p>
-            <Button
-              color="primary"
-              className="lg:hidden"
-              onPress={() => setSidebarOpen(true)}
-              startContent={<Icon name="menu" size={16} color="#fff" />}
-            >
-              Abrir conversaciones
-            </Button>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <header className="flex shrink-0 flex-col gap-2 border-b border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2 sm:flex-row sm:items-center sm:gap-3 sm:py-2 sm:px-5">
+              <div className="flex items-center gap-3">
+                <Button
+                  isIconOnly
+                  variant="bordered"
+                  size="sm"
+                  radius="md"
+                  className="border-[var(--border)] bg-[var(--bg-elevated)] text-[#9090a8] lg:hidden"
+                  aria-label="Menú"
+                  onPress={() => setSidebarOpen(true)}
+                >
+                  <Icon name="menu" size={15} />
+                </Button>
+                <h1 className="min-w-0 truncate text-sm font-semibold text-[#f0f0f5] sm:flex-1">
+                  Conversaciones
+                </h1>
+              </div>
+              <div className="w-full min-w-0 sm:flex-1 sm:max-w-lg">
+                <ChatSearchField
+                  value={q}
+                  onValueChange={setSearchQuery}
+                  placeholder="Buscar en tus chats…"
+                  aria-label="Buscar chats por título"
+                />
+              </div>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-8 text-center text-[#5a5a70]">
+              <Icon name="sparkle" size={32} color="#5a5a70" />
+              <p className="text-sm">Seleccioná o creá un chat desde el menú.</p>
+              <Button
+                color="primary"
+                className="lg:hidden"
+                onPress={() => setSidebarOpen(true)}
+                startContent={<Icon name="menu" size={16} color="#fff" />}
+              >
+                Abrir conversaciones
+              </Button>
+            </div>
           </div>
         )}
 
         {chatId && (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-surface)] px-4 sm:px-5">
-              <Button
-                isIconOnly
-                variant="bordered"
-                size="sm"
-                radius="md"
-                className="border-[var(--border)] bg-[var(--bg-elevated)] text-[#9090a8] lg:hidden"
-                aria-label="Menú"
-                onPress={() => setSidebarOpen(true)}
-              >
-                <Icon name="menu" size={15} />
-              </Button>
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-sm font-semibold text-[#f0f0f5]">{activeTitle}</h1>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
-                    style={{ animation: "helios-pulse 2s infinite" }}
+            <header className="flex shrink-0 flex-col gap-2 border-b border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:gap-3 sm:py-0 sm:px-5">
+              <div className="flex min-h-10 items-center gap-3 sm:min-h-0 sm:flex-1 sm:overflow-hidden">
+                <Button
+                  isIconOnly
+                  variant="bordered"
+                  size="sm"
+                  radius="md"
+                  className="shrink-0 border-[var(--border)] bg-[var(--bg-elevated)] text-[#9090a8] lg:hidden"
+                  aria-label="Menú"
+                  onPress={() => setSidebarOpen(true)}
+                >
+                  <Icon name="menu" size={15} />
+                </Button>
+                <div className="min-w-0 flex-1 sm:max-w-[min(40%,280px)] lg:max-w-xs">
+                  <h1 className="truncate text-sm font-semibold text-[#f0f0f5]">{activeTitle}</h1>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+                      style={{ animation: "helios-pulse 2s infinite" }}
+                    />
+                    <span className="text-[11px] text-[#5a5a70]">Helios · listo</span>
+                  </div>
+                </div>
+                <div className="hidden min-w-0 flex-1 sm:block sm:max-w-md lg:max-w-lg">
+                  <ChatSearchField
+                    value={q}
+                    onValueChange={setSearchQuery}
+                    placeholder="Buscar en tus chats…"
+                    aria-label="Buscar chats por título"
                   />
-                  <span className="text-[11px] text-[#5a5a70]">Helios · listo</span>
+                </div>
+                <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
+                  <div className="hidden items-center gap-2 md:flex">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Conectado
+                    </span>
+                  </div>
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    {userInitials(session.data.user)}
+                  </div>
                 </div>
               </div>
-              <div className="hidden items-center gap-2 sm:flex">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Conectado
-                </span>
-              </div>
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                style={{ background: "var(--accent)" }}
-              >
-                {userInitials(session.data.user)}
+              <div className="w-full sm:hidden">
+                <ChatSearchField
+                  value={q}
+                  onValueChange={setSearchQuery}
+                  placeholder="Buscar en tus chats…"
+                  aria-label="Buscar chats por título"
+                />
               </div>
             </header>
 

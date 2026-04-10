@@ -39,21 +39,7 @@ flowchart LR
 - **MongoDB**: [Atlas](https://www.mongodb.com/atlas) (gratis) o **local** con [MongoDB Community Server](https://www.mongodb.com/try/download/community). URI típica local: `mongodb://127.0.0.1:27017/wortise`.
 - **OpenAI** opcional: `OPENAI_API_KEY` (en producción sin clave podés usar `LLM_MOCK=1` para la demo).
 
-## MongoDB y Vercel
-
-**MongoDB no corre “dentro” de Vercel.** La base va en otro sitio; lo habitual es **[MongoDB Atlas](https://www.mongodb.com/atlas)** (tier gratis):
-
-1. Creá un cluster en Atlas → **Database** → **Connect** → driver **Node.js**.
-2. Copiá la connection string (con usuario y contraseña que definas en Atlas).
-3. En **Network Access** permití `0.0.0.0/0` solo para pruebas, o la IP de tu hosting del API.
-
-Esa URI va en **`MONGODB_URI`** del **servidor del API** (variables de entorno en Railway, Render, Fly.io, etc.), no hace falta ponerla en el front.
-
-**Vercel** suele usarse para el **frontend estático** (`apps/web` tras `pnpm build`). El **API** (Hono + Node) es un proceso largo: muchos equipos lo despliegan en **Railway**, **Render** o **Fly.io** y en Vercel ponen `VITE_API_URL=https://tu-api...` para que el navegador llame al backend. Alternativa: un solo servicio en Railway con build del monorepo (web + API) si preferís un solo URL (requiere configurar el proxy o CORS).
-
-Resumen: **Atlas = base de datos en la nube**; **Vercel = front** (típico); **API + `MONGODB_URI`** en otro host o en el mismo que el API.
-
-## Setup local (sin Docker en el backend)
+## Setup local
 
 1. **Instalar dependencias** (en la raíz del repo):
 
@@ -133,11 +119,290 @@ Resumen: **Atlas = base de datos en la nube**; **Vercel = front** (típico); **A
 - Colecciones `chats` y `messages` (dominio propio); colecciones de usuario/sesión las gestiona Better Auth.
 - Índices: ver script `packages/db/src/scripts/create-indexes.ts`.
 
-## Workflow con IA (documentación honesta)
+## Workflow de IA aplicado
 
-Herramientas de IA pueden usarse para scaffolding, borradores de README y exploración de APIs. La revisión de **auth/CORS**, **índices**, **modelo de `parts`** y **seguridad** debe ser humana. Esta entrega se implementó con asistencia de IA siguiendo el blueprint acordado; el código se validó con `pnpm exec tsc` en `apps/web` y `apps/api`.
+### Resumen
 
-## Modelos
+Usé IA como apoyo en todo el ciclo (planificación, diseño, ejecución y review), con validación manual en decisiones críticas de arquitectura, dominio, persistencia, auth y streaming.
+
+Principios aplicados:
+
+- **La IA propone; yo valido.**
+- **Primero arquitectura, luego scaffolding.**
+- **No delegar sin revisión los límites de dominio/seguridad.**
+- **Adaptar el código generado al contexto real del repo.**
+- **Documentar el uso de IA de forma honesta y trazable.**
+
+Flujo de trabajo seguido:
+
+1. **Plan**: blueprint de monorepo, dominio, tools y estrategia de streaming.
+2. **Diseño**: dirección visual y mockups antes de pulir UI.
+3. **Build**: implementación por capas (auth, chats, mensajes, streaming, tools, UX).
+4. **Review**: detección de riesgos técnicos y refinamiento final.
+
+Delegado a IA (aceleración): desglose del challenge, propuestas de arquitectura, esqueletos de routers/schemas/componentes y borradores de documentación.
+
+Validado manualmente (crítico): autorización por `userId`, modelo de chats/mensajes/parts, sincronización stream-DB, índices MongoDB, flujo real de Better Auth, URL state (`chatId`/`q`) y manejo de secretos.
+
+### Prompting strategy
+
+Estrategia por fases (no “hazme todo”): **plan → arquitectura → dominio → backend → frontend → mockup → ejecución → review**. Este orden redujo ruido y retrabajo.
+
+---
+
+### Prompts utilizados
+
+#### 1. Prompt maestro para planificación y arquitectura
+
+```text
+Actúa como un Staff Engineer / Principal Fullstack Architect / Tech Lead con experiencia real construyendo productos SaaS modernos con TypeScript, AI SDK, Better Auth, tRPC, Bun, Hono, MongoDB, TanStack Router, TanStack Form, TanStack Query, HeroUI, Zod, pnpm y turborepo.
+
+Necesito que me ayudes a resolver una prueba técnica fullstack senior de forma elite, con pensamiento arquitectónico, pragmatismo, mantenibilidad y foco absoluto en entregar una solución funcional, limpia, extensible y profesional.
+
+Quiero que trabajes como si fueras:
+- arquitecto de software
+- reviewer técnico exigente
+- senior product engineer
+- senior UX/UI thinker
+- copiloto de implementación
+
+Tu objetivo es ayudarme a:
+1. entender exactamente qué pide la prueba
+2. diseñar la arquitectura ideal
+3. diseñar el modelo de dominio
+4. proponer la estructura del repositorio
+5. definir el flujo de implementación
+6. diseñar la UI y el mockup
+7. generar una estrategia de desarrollo paso a paso
+8. detectar riesgos y anti-patrones
+9. ayudarme a redactar un README elite
+10. asegurar que todo sea fácilmente ejecutable en local
+
+Quiero una propuesta concreta, bien pensada, de nivel elite, para usarla como blueprint real de implementación.
+```
+
+#### 2. Prompt para estructura de monorepo
+
+```text
+Diseña la estructura ideal de monorepo para esta prueba técnica usando turborepo + pnpm con:
+- apps/web
+- apps/api
+- packages/shared
+- packages/db
+
+Necesito:
+- árbol de carpetas
+- responsabilidades de cada capa
+- qué schemas y tipos viven en shared
+- qué vive en db
+- cómo mantener tipado end-to-end
+- cómo evitar acoplamiento
+- scripts recomendados de desarrollo, build y typecheck
+```
+
+#### 3. Prompt para modelado de dominio
+
+```text
+Actúa como arquitecto de dominio senior.
+
+Necesito modelar una app de chat con:
+- usuarios autenticados
+- múltiples chats por usuario
+- mensajes persistidos
+- búsqueda por título
+- chats pineados
+- streaming
+- tools reales con outputs tipados
+
+Diseña:
+- entidades
+- tipos TypeScript
+- Zod schemas
+- documentos MongoDB
+- índices
+- estrategia recomendada para MessagePart
+- cómo representar tool invocations y tool results
+- cómo mantener extensibilidad futura
+```
+
+#### 4. Prompt para tools tipadas
+
+```text
+Diseña una arquitectura extensible para tools del agente.
+
+Tools mínimas:
+- currentDate
+- currentTime
+- currentWeather
+
+Quiero:
+- ToolDefinition
+- ToolContext
+- ToolPayloadMap
+- registry tipado
+- input/output schemas con Zod
+- estrategia para renderers en frontend
+- separación entre texto y resultados estructurados
+- provider desacoplado para clima
+```
+
+#### 5. Prompt para streaming
+
+```text
+Actúa como senior backend architect.
+
+Necesito una estrategia pragmática para manejar streaming de mensajes del asistente con AI SDK.
+
+Explica:
+- cómo inicia el envío
+- cómo viaja el stream
+- cómo se representa en frontend
+- cómo persistir el mensaje final
+- cómo integrar tool calls y tool results
+- cómo evitar inconsistencias entre stream y DB
+- qué camino recomiendas para una prueba técnica y por qué
+```
+
+#### 6. Prompt para backend
+
+```text
+Actúa como Staff Backend Engineer.
+
+Diseña el backend con Bun + Hono + tRPC + MongoDB para una app con:
+- Better Auth
+- list/create/rename/pin/delete chats
+- list messages by chat
+- chat streaming endpoint
+- tools tipadas
+- autorización por usuario
+
+Quiero:
+- routers
+- procedures
+- services
+- repositories
+- validaciones Zod
+- middlewares
+- manejo de errores
+- índices relevantes
+- riesgos técnicos
+```
+
+#### 7. Prompt para frontend
+
+```text
+Actúa como Senior Frontend Architect.
+
+Diseña el frontend con TanStack Router, Query, Form y HeroUI para:
+- /auth
+- /chat
+
+Necesito:
+- estructura por features
+- manejo de URL state
+- manejo de server state
+- loading/error/empty states
+- chat list con búsqueda e infinite scroll
+- message list
+- tool cards
+- composer
+- streaming UX
+- recomendaciones implementables y limpias
+```
+
+#### 8. Prompt para diseño visual y mockup
+
+```text
+Actúa como Principal Product Designer especializado en SaaS modernas, asistentes de IA y productos B2B.
+
+Necesito una propuesta visual premium, sobria, moderna, implementable y realista para una app con:
+- pantalla /auth
+- pantalla /chat
+- sidebar con chats recientes
+- búsqueda
+- chats pineados
+- rename/pin/delete
+- conversation view
+- streaming state
+- cards específicas para date/time/weather tools
+
+Inspiración sutil:
+- ChatGPT
+- Claude
+- Linear
+- Notion
+- Vercel
+
+Quiero:
+- layout general
+- jerarquía visual
+- componentes principales
+- estados loading/error/empty
+- tokens visuales
+- paleta
+- tipografía
+- spacing
+- recomendaciones para HeroUI
+- un prompt final para generar el mockup high fidelity
+```
+
+#### 9. Prompt para review técnico final
+
+```text
+Actúa como reviewer senior de una empresa top.
+
+Voy a pasarte archivos y decisiones de una prueba técnica fullstack senior.
+
+Tu tarea:
+- detectar problemas de arquitectura
+- detectar tipado débil
+- detectar acoplamientos innecesarios
+- detectar riesgos de escalabilidad
+- detectar anti-patrones
+- proponer mejoras concretas
+
+Clasifica todo en:
+1. critical
+2. important
+3. nice to have
+```
+
+#### 10. Prompt para README final
+
+```text
+Ayúdame a redactar un README.md elite para una prueba técnica fullstack senior.
+
+Debe incluir:
+- overview
+- stack
+- arquitectura
+- setup local
+- variables de entorno
+- auth flow
+- chat flow
+- tools architecture
+- streaming
+- decisiones técnicas
+- workflow con IA
+- prompts utilizados
+- modelos utilizados
+- trade-offs
+- mejoras futuras
+```
+
+---
+
+### Modelos y herramientas usadas (desarrollo del proyecto)
+
+- **ChatGPT Thinking**: análisis del challenge, planificación, arquitectura y revisión de riesgos.
+- **Claude**: expansión de arquitectura, diseño visual/mockups y apoyo en implementación.
+- **Claude Agents**: ejecución acelerada de tareas concretas sobre el plan definido.
+
+### Conclusión
+
+La IA se usó como multiplicador de velocidad y claridad, con revisión manual en todas las decisiones sensibles para mantener coherencia, seguridad y mantenibilidad.
+
+## Modelos (runtime del chat)
 
 - Por defecto: **OpenAI** `gpt-4o-mini` (configurable con `OPENAI_MODEL`).
 
