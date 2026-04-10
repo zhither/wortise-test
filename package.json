@@ -4,6 +4,7 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "turbo build",
+    "install:dev": "pnpm install --prod=false",
     "dev": "turbo run dev --parallel --filter=@wortise/api --filter=@wortise/web",
     "dev:web": "pnpm --filter @wortise/web dev",
     "dev:api": "pnpm --filter @wortise/api dev",
@@ -11,7 +12,7 @@
     "typecheck": "turbo typecheck",
     "db:indexes": "pnpm --filter @wortise/db run indexes"
   },
-  "devDependencies": {
+  "dependencies": {
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   }

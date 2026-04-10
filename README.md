@@ -39,6 +39,46 @@ flowchart LR
 - **MongoDB**: [Atlas](https://www.mongodb.com/atlas) (gratis) o **local** con [MongoDB Community Server](https://www.mongodb.com/try/download/community). URI típica local: `mongodb://127.0.0.1:27017/wortise`.
 - **OpenAI** opcional: `OPENAI_API_KEY` (en producción sin clave podés usar `LLM_MOCK=1` para la demo).
 
+## Despliegue en Vercel (entrega)
+
+La entrega pide un **enlace funcional en Vercel**. Este repo está preparado para **dos proyectos Vercel** (mismo GitHub): **API Hono** y **SPA Vite**, o solo el front si el evaluador acepta API en otro host. La API usa `export default app` en `apps/api/src/index.ts` (formato que espera Vercel para Hono).
+
+### 1) Proyecto `apps/api` (backend)
+
+1. **New Project** → mismo repo → **Root Directory**: `apps/api`.
+2. **Framework Preset**: **Hono** (o detección automática).
+3. **Install Command** (si no tomara el `vercel.json`): `cd ../.. && pnpm install`
+4. **Environment variables** (producción):
+
+   | Variable | Valor típico |
+   |----------|----------------|
+   | `NODE_ENV` | `production` |
+   | `MONGODB_URI` | URI de Atlas |
+   | `BETTER_AUTH_SECRET` | Secreto ≥16 caracteres |
+   | `BETTER_AUTH_URL` | **URL pública de este proyecto**, ej. `https://tu-api.vercel.app` (sin `/` final) |
+   | `CORS_ORIGIN` | **URL del front**, ej. `https://tu-app.vercel.app` |
+   | `OPENAI_API_KEY` o `LLM_MOCK` | `LLM_MOCK=1` si no hay OpenAI |
+
+5. Tras el primer deploy: ejecutá **`pnpm db:indexes`** localmente con la misma `MONGODB_URI` apuntando a Atlas (o un job one-shot), para crear índices.
+
+**Health check:** `GET https://tu-api.vercel.app/health`
+
+### 2) Proyecto `apps/web` (frontend — el link que suelen pedir para “despliegue en Vercel”)
+
+1. **Root Directory**: `apps/web`.
+2. Framework: **Vite** (o “Other” con build `pnpm run build`, output `dist`). El `vercel.json` del web ya fija install/build/output si hace falta.
+3. **Environment variables:**
+
+   | Variable | Valor |
+   |----------|--------|
+   | `VITE_API_URL` | URL del API, ej. `https://tu-api.vercel.app` **sin** barra final |
+
+El enlace que compartís como “app en Vercel” suele ser el del **frontend** (`https://tu-app.vercel.app`). El README y las variables enlazan ese front con el API.
+
+### Desarrollo local (sin cambios)
+
+- Sigue aplicando `pnpm dev`: el API usa `apps/api/src/server.ts` con `@hono/node-server`; Vercel usa solo `apps/api/src/index.ts`.
+
 ## Setup local
 
 1. **Instalar dependencias** (en la raíz del repo):
