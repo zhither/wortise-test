@@ -4,10 +4,23 @@ import {
   createRoute,
   redirect,
 } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { z } from "zod";
 
-import { AuthPage } from "./routes/auth";
-import { ChatPage } from "./routes/chat";
+const AuthPage = lazy(() =>
+  import("./routes/auth").then((m) => ({ default: m.AuthPage })),
+);
+const ChatPage = lazy(() =>
+  import("./routes/chat").then((m) => ({ default: m.ChatPage })),
+);
+
+function RouteShellFallback() {
+  return (
+    <div className="flex h-[100dvh] items-center justify-center bg-[#0a0a0f] text-[#9090a8]">
+      <p className="text-sm">Cargando…</p>
+    </div>
+  );
+}
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -24,7 +37,11 @@ const indexRoute = createRoute({
 const authRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth",
-  component: AuthPage,
+  component: () => (
+    <Suspense fallback={<RouteShellFallback />}>
+      <AuthPage />
+    </Suspense>
+  ),
 });
 
 const chatSearchSchema = z.object({
@@ -39,7 +56,11 @@ const chatRoute = createRoute({
     const parsed = chatSearchSchema.safeParse(search);
     return parsed.success ? parsed.data : {};
   },
-  component: ChatPage,
+  component: () => (
+    <Suspense fallback={<RouteShellFallback />}>
+      <ChatPage />
+    </Suspense>
+  ),
 });
 
 export const routeTree = rootRoute.addChildren([indexRoute, authRoute, chatRoute]);
