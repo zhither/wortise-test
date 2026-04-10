@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+/** Origen del navegador sin barra final; evita fallos si en Vercel se pone `https://web.com/` */
+function normalizeOriginUrl(href: string): string {
+  return new URL(href.trim()).origin;
+}
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(3000),
@@ -28,6 +33,8 @@ export function env(): Env {
     throw new Error(`Invalid environment variables: ${detail}`);
   }
   const data = parsed.data;
+  data.CORS_ORIGIN = normalizeOriginUrl(data.CORS_ORIGIN);
+  data.BETTER_AUTH_URL = normalizeOriginUrl(data.BETTER_AUTH_URL);
   const hasOpenai = Boolean(data.OPENAI_API_KEY?.trim());
   const llmMockFlag = data.LLM_MOCK === "1";
   if (data.NODE_ENV === "production" && !hasOpenai && !llmMockFlag) {
