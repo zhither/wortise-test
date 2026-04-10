@@ -1,0 +1,18 @@
+{
+  "name": "wortise",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo run dev --parallel --filter=@wortise/api --filter=@wortise/web",
+    "dev:web": "pnpm --filter @wortise/web dev",
+    "dev:api": "pnpm --filter @wortise/api dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:indexes": "pnpm --filter @wortise/db run indexes"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

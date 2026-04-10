@@ -1,0 +1,43 @@
+{
+  "name": "@wortise/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wait-on http://127.0.0.1:3000/health -t 120000 && vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "^1.2.0",
+    "@heroui/react": "^2.6.14",
+    "@heroui/theme": "^2.4.5",
+    "@tanstack/react-form": "^0.41.3",
+    "@tanstack/react-query": "^5.66.0",
+    "@tanstack/react-router": "^1.102.0",
+    "@trpc/client": "^11.0.0-rc.666",
+    "@trpc/react-query": "^11.0.0-rc.666",
+    "@wortise/api": "workspace:*",
+    "@wortise/shared": "workspace:*",
+    "ai": "^4.3.19",
+    "better-auth": "^1.6.2",
+    "framer-motion": "^11.18.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.11",
+    "wait-on": "^9.0.4"
+  }
+}

@@ -1,0 +1,19 @@
+node_modules
+dist
+.turbo
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+coverage
+.vite
+*.tsbuildinfo
+
+# Never commit credentials
+*-*.json
+!package.json
+!tsconfig.json
+!turbo.json
+**/service-account*.json
+**/*credentials*.json
