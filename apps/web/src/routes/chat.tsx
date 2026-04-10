@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   Button,
@@ -38,6 +39,7 @@ function userInitials(user: { name?: string | null; email?: string | null }): st
 
 export function ChatPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const search = useSearch({ from: "/chat" });
   const chatId = search.chatId;
   const q = search.q ?? "";
@@ -45,6 +47,7 @@ export function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const lastUserIdRef = useRef<string | null | undefined>(undefined);
 
   const session = authClient.useSession();
 
@@ -113,6 +116,33 @@ export function ChatPage() {
     },
   });
 
+  useEffect(() => {
+    if (session.isPending) return;
+    const currentUserId = session.data?.user?.id ?? null;
+    if (lastUserIdRef.current === undefined) {
+      lastUserIdRef.current = currentUserId;
+      return;
+    }
+    if (lastUserIdRef.current !== currentUserId) {
+      // Evita que al cambiar de cuenta se rendericen chats/cache del usuario anterior.
+      queryClient.clear();
+      setMessages([]);
+      setSidebarOpen(false);
+      if (currentUserId) {
+        void navigate({ to: "/chat", search: { q: undefined }, replace: true });
+      } else {
+        void navigate({ to: "/auth", replace: true });
+      }
+    }
+    lastUserIdRef.current = currentUserId;
+  }, [
+    session.isPending,
+    session.data?.user?.id,
+    queryClient,
+    setMessages,
+    navigate,
+  ]);
+
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -178,6 +208,7 @@ export function ChatPage() {
   const setSearchQuery = (v: string) => {
     void navigate({ to: "/chat", search: { chatId, q: v || undefined } });
   };
+  const showCollapsedSearchHint = Boolean(q) && !sidebarOpen;
 
   const sidebarInner = (
     <>
@@ -301,7 +332,12 @@ export function ChatPage() {
           variant="light"
           size="sm"
           className="w-full justify-start text-[#9090a8]"
-          onPress={() => authClient.signOut().then(() => navigate({ to: "/auth" }))}
+          onPress={async () => {
+            await authClient.signOut();
+            queryClient.clear();
+            setMessages([]);
+            void navigate({ to: "/auth", replace: true });
+          }}
         >
           Cerrar sesión
         </Button>
@@ -355,6 +391,11 @@ export function ChatPage() {
                   placeholder="Buscar en tus chats…"
                   aria-label="Buscar chats por título"
                 />
+                {showCollapsedSearchHint && (
+                  <p className="mt-1.5 text-[11px] text-[#5a5a70] sm:hidden">
+                    Filtro activo. Abrí conversaciones para ver resultados.
+                  </p>
+                )}
               </div>
             </header>
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-8 text-center text-[#5a5a70]">
@@ -427,6 +468,11 @@ export function ChatPage() {
                   placeholder="Buscar en tus chats…"
                   aria-label="Buscar chats por título"
                 />
+                {showCollapsedSearchHint && (
+                  <p className="mt-1.5 text-[11px] text-[#5a5a70]">
+                    Filtro activo. Abrí conversaciones para ver resultados.
+                  </p>
+                )}
               </div>
             </header>
 

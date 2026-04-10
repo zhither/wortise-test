@@ -41,8 +41,9 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
 
     if (lat === undefined || lon === undefined) {
       if (input.city?.trim()) {
+        const requestedCity = input.city.trim();
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-          input.city.trim(),
+          requestedCity,
         )}&count=1`;
         const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(8000) });
         if (!geoRes.ok) throw new Error("WEATHER_GEO_UNAVAILABLE");
@@ -51,11 +52,15 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         };
         const first = geoJson.results?.[0];
         if (!first) {
-          throw new Error("WEATHER_LOCATION_NOT_FOUND");
+          // Fallback suave: evitamos romper el chat por una ciudad ambigua/no encontrada.
+          lat = 40.4168;
+          lon = -3.7038;
+          location = `${requestedCity} (no encontrada, usando Madrid)`;
+        } else {
+          lat = first.latitude;
+          lon = first.longitude;
+          location = first.name;
         }
-        lat = first.latitude;
-        lon = first.longitude;
-        location = first.name;
       } else {
         lat = 40.4168;
         lon = -3.7038;
