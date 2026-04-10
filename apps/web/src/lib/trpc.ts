@@ -3,9 +3,11 @@ import { QueryClient } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 
+import { getApiBaseUrl } from "./api-base-url";
+
 export const trpc = createTRPCReact<AppRouter>();
 
-const base = import.meta.env.VITE_API_URL ?? "";
+const base = getApiBaseUrl();
 
 export function createTrpcClient() {
   return trpc.createClient({

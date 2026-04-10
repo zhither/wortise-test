@@ -16,10 +16,11 @@ import { ChatSearchField } from "../components/chat-search-field";
 import { Icon } from "../components/icons";
 import { MessagePartsView } from "../components/message-parts";
 import { formatChatListTime } from "../lib/format-chat-time";
+import { getApiBaseUrl } from "../lib/api-base-url";
 import { authClient } from "../lib/auth-client";
 import { trpc } from "../lib/trpc";
 
-const apiBase = import.meta.env.VITE_API_URL ?? "";
+const apiBase = getApiBaseUrl();
 
 function userInitials(user: { name?: string | null; email?: string | null }): string {
   const n = user.name?.trim();
