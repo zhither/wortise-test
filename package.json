@@ -3,7 +3,6 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "postinstall": "turbo run build --filter=@wortise/shared --filter=@wortise/db",
     "build": "turbo build",
     "dev": "turbo run dev --parallel --filter=@wortise/api --filter=@wortise/web",
     "dev:web": "pnpm --filter @wortise/web dev",
