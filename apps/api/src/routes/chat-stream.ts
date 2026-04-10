@@ -1,5 +1,6 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
+
+import { createVertexLanguageModel } from "../ai/vertex-model.js";
 import type { Hono } from "hono";
 
 import type { MessagePart } from "@wortise/shared";
@@ -72,10 +73,11 @@ export function registerChatStreamRoute(app: Hono, auth: AuthInstance): void {
     await touchChatLastMessage({ db, chatId, userId, at: now });
 
     const e0 = env();
-    const openaiKey = e0.OPENAI_API_KEY?.trim();
-    /** En desarrollo siempre mock. En producción: OpenAI o LLM_MOCK=1. */
-    const useLlmMock = e0.NODE_ENV === "development" || process.env.LLM_MOCK === "1";
-    const assistantModel = useLlmMock ? "dev-llm-mock" : e0.OPENAI_MODEL;
+    /** Mock: `LLM_MOCK=1`, o en desarrollo salvo que pongas `LLM_MOCK=0` (Gemini real con Vertex). */
+    const useLlmMock =
+      process.env.LLM_MOCK === "1" ||
+      (e0.NODE_ENV === "development" && process.env.LLM_MOCK !== "0");
+    const assistantModel = useLlmMock ? "dev-llm-mock" : e0.VERTEX_GEMINI_MODEL;
 
     const assistantDoc = await insertMessage({
       db,
@@ -117,7 +119,7 @@ export function registerChatStreamRoute(app: Hono, auth: AuthInstance): void {
       });
     }
 
-    const languageModel = createOpenAI({ apiKey: openaiKey! })(e0.OPENAI_MODEL);
+    const languageModel = createVertexLanguageModel(e0);
 
     const system =
       "Eres un asistente conciso. " +

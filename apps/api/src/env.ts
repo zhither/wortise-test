@@ -13,17 +13,22 @@ const schema = z.object({
   BETTER_AUTH_URL: z.string().url(),
   /** Una o varias URLs separadas por coma (ej. prod + preview de Vercel). */
   CORS_ORIGIN: z.string().min(1),
-  /** OpenAI (platform.openai.com). En producción: obligatorio salvo `LLM_MOCK=1`. */
-  OPENAI_API_KEY: z.string().optional(),
-  /** Producción: `1` = chat sin modelo remoto (heurística + tools). En desarrollo el mock ya va por defecto. */
+  /** `1` = LLM local heurístico (sin Vertex). En dev, si no ponés `LLM_MOCK=0`, también va en mock. */
   LLM_MOCK: z.string().optional(),
-  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+
+  /** Google Cloud project id (ej. el de la service account JSON). */
+  GOOGLE_VERTEX_PROJECT: z.string().optional(),
+  /** Región Vertex (ej. us-central1, europe-west1). */
+  GOOGLE_VERTEX_LOCATION: z.string().default("us-central1"),
+  GOOGLE_CLIENT_EMAIL: z.string().optional(),
+  /** PEM multilínea; en Vercel podés usar \n como dos caracteres entre líneas. */
+  GOOGLE_PRIVATE_KEY: z.string().optional(),
+  /** Modelo Gemini en Vertex (ver IDs en @ai-sdk/google-vertex). */
+  VERTEX_GEMINI_MODEL: z.string().default("gemini-2.0-flash-001"),
 });
 
 export type Env = Omit<z.infer<typeof schema>, "CORS_ORIGIN"> & {
-  /** Primer origen (retrocompat). */
   CORS_ORIGIN: string;
-  /** Todos los orígenes permitidos (mismo valor que `CORS_ORIGIN` en env, normalizado). */
   CORS_ORIGINS: string[];
 };
 
@@ -52,6 +57,26 @@ export function env(): Env {
     throw new Error("CORS_ORIGIN vacío");
   }
 
+  const hasVertex =
+    Boolean(raw.GOOGLE_VERTEX_PROJECT?.trim()) &&
+    Boolean(raw.GOOGLE_CLIENT_EMAIL?.trim()) &&
+    Boolean(raw.GOOGLE_PRIVATE_KEY?.trim());
+  const llmMockFlag = raw.LLM_MOCK === "1";
+
+  if (raw.LLM_MOCK === "0" && !hasVertex) {
+    throw new Error(
+      "LLM_MOCK=0 requiere GOOGLE_VERTEX_PROJECT, GOOGLE_CLIENT_EMAIL y GOOGLE_PRIVATE_KEY.",
+    );
+  }
+
+  if (raw.NODE_ENV === "production" && !llmMockFlag) {
+    if (!hasVertex) {
+      throw new Error(
+        "En producción definí credenciales Vertex (GOOGLE_VERTEX_PROJECT, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY) o LLM_MOCK=1.",
+      );
+    }
+  }
+
   const data: Env = {
     ...raw,
     BETTER_AUTH_URL: normalizeOriginUrl(raw.BETTER_AUTH_URL),
@@ -59,13 +84,6 @@ export function env(): Env {
     CORS_ORIGINS: corsOrigins,
   };
 
-  const hasOpenai = Boolean(data.OPENAI_API_KEY?.trim());
-  const llmMockFlag = data.LLM_MOCK === "1";
-  if (data.NODE_ENV === "production" && !hasOpenai && !llmMockFlag) {
-    throw new Error(
-      "En producción definí OPENAI_API_KEY o LLM_MOCK=1 (modo demo sin modelo OpenAI).",
-    );
-  }
   cached = data;
-  return cached;
+  return data;
 }

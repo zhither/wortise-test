@@ -22,7 +22,7 @@ type Invocation = {
 };
 
 /**
- * Sin OpenAI: ejecuta herramientas por heurística y persiste el mismo formato que streamText.
+ * Sin Vertex: ejecuta herramientas por heurística y persiste el mismo formato que streamText.
  */
 export async function respondWithDevMockLlm(input: {
   db: Db;

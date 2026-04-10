@@ -8,7 +8,7 @@ Monorepo **pnpm** + **Turborepo**: frontend **Vite/React** con **TanStack Router
 |------------|------------|
 | Monorepo   | pnpm, Turborepo |
 | Web        | Vite 6, React 19, TanStack Router/Query/Form, HeroUI, tRPC client |
-| API        | Hono, tRPC, Better Auth, AI SDK, @ai-sdk/openai |
+| API        | Hono, tRPC, Better Auth, AI SDK, @ai-sdk/google-vertex (Gemini) |
 | Datos      | MongoDB (driver oficial), esquemas Zod en `@wortise/shared` |
 | Auth       | Better Auth (email/contraseña), cookies de sesión |
 
@@ -37,7 +37,7 @@ flowchart LR
 
 - Node 20+ y pnpm 9+
 - **MongoDB**: [Atlas](https://www.mongodb.com/atlas) (gratis) o **local** con [MongoDB Community Server](https://www.mongodb.com/try/download/community). URI típica local: `mongodb://127.0.0.1:27017/wortise`.
-- **OpenAI** opcional: `OPENAI_API_KEY` (en producción sin clave podés usar `LLM_MOCK=1` para la demo).
+- **Google Vertex AI (Gemini)**: credenciales de service account en variables de entorno (en producción sin Vertex podés usar `LLM_MOCK=1` para la demo).
 
 ## Despliegue en Vercel (entrega)
 
@@ -57,7 +57,7 @@ La entrega pide un **enlace funcional en Vercel**. Este repo está preparado par
    | `BETTER_AUTH_SECRET` | Secreto ≥16 caracteres |
    | `BETTER_AUTH_URL` | **URL pública de este proyecto**, ej. `https://tu-api.vercel.app` (sin `/` final) |
    | `CORS_ORIGIN` | **URL del front**, ej. `https://tu-app.vercel.app` |
-   | `OPENAI_API_KEY` o `LLM_MOCK` | `LLM_MOCK=1` si no hay OpenAI |
+   | Vertex (`GOOGLE_VERTEX_*`, etc.) o `LLM_MOCK` | `LLM_MOCK=1` si no configurás Vertex |
 
 5. Tras el primer deploy: ejecutá **`pnpm db:indexes`** localmente con la misma `MONGODB_URI` apuntando a Atlas (o un job one-shot), para crear índices.
 
@@ -125,9 +125,9 @@ El enlace que compartís como “app en Vercel” suele ser el del **frontend** 
 | `BETTER_AUTH_SECRET` | Secreto largo (≥16 caracteres) |
 | `BETTER_AUTH_URL` | URL base del API, p. ej. `http://localhost:3000` |
 | `CORS_ORIGIN` | Origen del front, p. ej. `http://localhost:5173` |
-| `OPENAI_API_KEY` | Clave OpenAI (opcional si `LLM_MOCK=1` en producción) |
-| `OPENAI_MODEL` | Modelo (por defecto `gpt-4o-mini`) |
-| `LLM_MOCK` | En producción: `1` = chat sin OpenAI (heurística + tools) |
+| `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY` | Service account para Gemini en Vertex |
+| `VERTEX_GEMINI_MODEL` | Id del modelo (por defecto `gemini-2.0-flash-001`) |
+| `LLM_MOCK` | `1` = chat sin Vertex (heurística + tools). En **desarrollo**, mock por defecto; `LLM_MOCK=0` + credenciales Vertex = Gemini real |
 | `WEATHER_USE_MOCK` | En dev, mock por defecto; `0` fuerza Open-Meteo |
 
 ## Flujo de autenticación
@@ -444,7 +444,7 @@ La IA se usó como multiplicador de velocidad y claridad, con revisión manual e
 
 ## Modelos (runtime del chat)
 
-- Por defecto: **OpenAI** `gpt-4o-mini` (configurable con `OPENAI_MODEL`).
+- **Gemini** vía Vertex (`VERTEX_GEMINI_MODEL`, por defecto `gemini-2.0-flash-001`).
 
 ## Trade-offs
 
